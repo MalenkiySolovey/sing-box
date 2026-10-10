@@ -23,9 +23,13 @@ The delta is confined to `service/ssmapi` and this source notice:
   drains the periodic writer before final flush. Close has one two-second
   context budget. Injected storage must honor cancellation before publication;
   blocked external filesystem calls cannot be forcibly interrupted by Go.
+  HTTP shutdown may already close the served TCP listener; the listener owner
+  still cleans up and treats only its expected `net.ErrClosed` as success.
 - `cache_test.go`: bounded/corrupt/redacted inputs, counters/authentication
   restoration, concurrent update snapshots, missing/disabled optional cache,
   failed startup preimage, periodic drain, bounded concurrent close and close-once.
+  A real served loopback listener proves normal closure, port reuse and repeated
+  close without a spurious hot-removal failure.
 
 Solovey's deployment adapter independently owns anchored private data paths,
 POSIX ownership/mode and Windows DACL checks, atomic publication, read-only
