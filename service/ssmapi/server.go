@@ -42,6 +42,13 @@ type Service struct {
 	saveTicker     *time.Ticker
 	lastSavedCache []byte
 	cacheMutex     sync.Mutex
+	cacheStore     CacheStore
+	cacheReady     bool
+	loopDone       chan struct{}
+	lifecycle      sync.Mutex
+	closeOnce      sync.Once
+	closeErr       error
+	closed         bool
 }
 
 func NewService(ctx context.Context, logger log.ContextLogger, tag string, options option.SSMAPIServiceOptions) (adapter.Service, error) {
@@ -64,6 +71,10 @@ func NewService(ctx context.Context, logger log.ContextLogger, tag string, optio
 		traffics:  make(map[string]*TrafficManager),
 		users:     make(map[string]*UserManager),
 		cachePath: options.CachePath,
+	}
+	s.cacheStore, _ = ctx.Value(cacheStoreKey{}).(CacheStore)
+	if s.cacheStore == nil {
+		s.cacheStore = fileCacheStore{ctx: ctx, path: options.CachePath}
 	}
 	inboundManager := service.FromContext[adapter.InboundManager](ctx)
 	if options.Servers.Size() == 0 {
@@ -99,12 +110,18 @@ func (s *Service) Start(stage adapter.StartStage) error {
 	if stage != adapter.StartStateStart {
 		return nil
 	}
+	s.lifecycle.Lock()
+	defer s.lifecycle.Unlock()
+	if s.closed {
+		return errors.New("SSM_SERVICE_CLOSED")
+	}
+	if s.cacheReady {
+		return nil
+	}
 	err := s.loadCache()
 	if err != nil {
-		s.logger.Error(E.Cause(err, "load cache"))
+		return errors.New("SSM_CACHE_LOAD_REJECTED")
 	}
-	s.saveTicker = time.NewTicker(1 * time.Minute)
-	go s.loopSaveCache()
 	if s.tlsConfig != nil {
 		err = s.tlsConfig.Start()
 		if err != nil {
@@ -127,16 +144,23 @@ func (s *Service) Start(stage adapter.StartStage) error {
 			s.logger.Error("serve error: ", err)
 		}
 	}()
+	s.cacheReady = true
+	if s.cachePath != "" {
+		s.saveTicker = time.NewTicker(1 * time.Minute)
+		s.loopDone = make(chan struct{})
+		go s.loopSaveCache()
+	}
 	return nil
 }
 
 func (s *Service) loopSaveCache() {
+	defer close(s.loopDone)
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		case <-s.saveTicker.C:
-			err := s.saveCache()
+			err := s.saveCache(s.ctx)
 			if err != nil {
 				s.logger.Error(E.Cause(err, "save cache"))
 			}
@@ -145,19 +169,36 @@ func (s *Service) loopSaveCache() {
 }
 
 func (s *Service) Close() error {
-	if s.cancel != nil {
+	s.closeOnce.Do(func() {
+		s.lifecycle.Lock()
+		s.closed = true
 		s.cancel()
-	}
-	if s.saveTicker != nil {
-		s.saveTicker.Stop()
-	}
-	err := s.saveCache()
-	if err != nil {
-		s.logger.Error(E.Cause(err, "save cache"))
-	}
-	return common.Close(
-		common.PtrOrNil(s.httpServer),
-		common.PtrOrNil(s.listener),
-		s.tlsConfig,
-	)
+		if s.saveTicker != nil {
+			s.saveTicker.Stop()
+		}
+		ready, done := s.cacheReady, s.loopDone
+		s.lifecycle.Unlock()
+		s.closeErr = common.Close(common.PtrOrNil(s.httpServer), common.PtrOrNil(s.listener), s.tlsConfig)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if done != nil {
+			select {
+			case <-done:
+			case <-ctx.Done():
+				s.closeErr = errors.Join(s.closeErr, errors.New("SSM_CACHE_DRAIN_TIMEOUT"))
+				return
+			}
+		}
+		if ready && s.cachePath != "" {
+			flush := make(chan error, 1)
+			go func() { flush <- s.saveCache(ctx) }()
+			select {
+			case err := <-flush:
+				s.closeErr = errors.Join(s.closeErr, err)
+			case <-ctx.Done():
+				s.closeErr = errors.Join(s.closeErr, errors.New("SSM_CACHE_DRAIN_TIMEOUT"))
+			}
+		}
+	})
+	return s.closeErr
 }
