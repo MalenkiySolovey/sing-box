@@ -40,3 +40,16 @@ Source and original copyright notices remain under GPL-3.0-or-later. These
 integration additions are also GPL-3.0-or-later. The consuming repository records
 the exact source commit, Go module checksums, complete replayable patch, package
 build metadata and SBOM module replacement. No module cache is modified.
+
+Additional bounded WebSocket transport correction: the official v1.14.2 server
+compared a decoded literal path against RequestURI when decoding path early
+data, including when early data was disabled. Literal question marks/percent
+escapes failed even when the native client sent the correct path. Oversized
+early data also bypassed the configured maximum before transport admission.
+`transport/v2raywebsocket/server.go` now uses URL.Path for the suffix, decodes
+only when enabled, and rejects oversized data before the handler. Existing
+protocol authentication and runtime/session ownership remain unchanged.
+`server_path_test.go` exercises disabled/path/header modes with two literal
+paths and oversized-header rejection through actual loopback transports.
+Solovey separately adapts server-to-client path and public ECH serialization;
+those changes belong to its existing entity/subscription owners.
