@@ -34,8 +34,9 @@ The SSM delta is confined to `service/ssmapi` and this source notice:
 The Naive HTTP/3 addition repairs independently reproduced authenticated parent
 connections remaining open after normal removal, hot replacement and Box shutdown:
 
-- `protocol/naive/inbound.go`: close HTTP/3 lifecycle before the enclosing listener
-  destroys UDP. TCP/HTTP handler and TLS cleanup retain their existing owners.
+- `protocol/naive/inbound.go`: its existing reverse-order Scope already closes
+  the HTTP/3 lifecycle before the listener destroys UDP. This ordering is retained
+  without adding the old engine's Close method. TCP/HTTP and TLS owners stay intact.
 - `protocol/naive/quic/inbound_init.go`: preserve official TLS, congestion and HTTP
   semantics; validate congestion before allocating UDP, and hand accepted parents
   to the already pinned sing-quic transport owner. Serve each with the existing
@@ -47,9 +48,9 @@ connections remaining open after normal removal, hot replacement and Box shutdow
   and deadlines remain failures. QUIC's emission attempt cannot guarantee delivery
   across a broken network.
 
-This seam is consumed with Solovey's paired sing-quic integration
-`b2eea8ca8762dd1e438171e2f7b56f9715c30cbb`, selected quic-go
-`v0.61.0-sing-box-mod.7`, and the unchanged official dependency requirements.
+This seam is consumed with Solovey's adapted sing-quic parent integration on
+`75c3ac4fa12b4ded2dc01b392ed7d5eaf3ea6876`, selected quic-go
+`v0.61.0-sing-box-mod.9`, and the explicit Shtorm root replacement graph.
 Build/test it under the consuming Solovey module's pinned graph. It introduces
 no second transport inventory: the same per-inbound parent owner is reused.
 Naive authentication remains per HTTP request and may use different principals
@@ -95,3 +96,25 @@ Live userspace device tests cover peer read/add/remove, AWG flag readback,
 concurrent IPC/close, repeated close and restart rejection. The Panel must retain
 its runtime generation and redact key material before exposing IPC observations;
 this seam does not introduce an independent user/device or secret owner.
+
+Native manager hot lifecycle retains the existing Scope model. At the pinned
+Shtorm baseline only the outbound manager can remove/replace active objects.
+The inbound, endpoint and service managers reject duplicate active tags, expose
+no Remove operation, and do not start dynamically constructed candidates. The
+bounded integration adds Remove to those three interfaces and adapts their
+managers to the same native outbound Scope pattern. It serializes lifecycle
+stages and mutation, closes a failed candidate's private Scope, keeps the accepted
+object published until startup succeeds, and detaches returned inventory slices.
+CoreRuntime retains its lifecycle lease across mutations and fences generation
+shutdown. Native Scope cleanup is the sole owner of failed candidate resources;
+the consumer's legacy Close-based candidate workaround is not used for this ABI.
+`adapter/hot_lifecycle_test.go` covers every failure stage, old-object retention,
+exact cleanup, successful replacement/removal, duplicate construction rejection,
+snapshot isolation and served TCP listener reuse for all three manager kinds.
+The consuming Panel's existing authenticated QUIC/Naive lifecycle and SSM HTTP
+tests exercise the same public runtime mutations without changing generation.
+
+`service/api/server.go` retains native Scope cleanup but treats the TCP listener's
+expected net.ErrClosed after http.Server.Close as normal. Other cleanup errors
+still fail. The consuming runtime's actual private API handshake, stop/restart,
+API-only degradation, log redaction and generation fencing tests cover this seam.
