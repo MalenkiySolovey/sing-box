@@ -1,4 +1,4 @@
-# Solovey pinned SSM integration
+# Solovey pinned Shtorm integration
 
 Baseline: Shtorm sing-box-extended v1.14.3-extended-2.7.3,
 `d9442d14b19ddd02605bf3ee893a171947038e19`, including Official v1.14.3
@@ -7,7 +7,7 @@ The bounded SSM integration is adapted from Solovey's Official integration
 `20fdbaa1`. Cleanup is registered with Shtorm's lifecycle Scope. This is a
 patched Shtorm source integration, not byte-identical upstream or Official.
 
-The delta is confined to `service/ssmapi` and this source notice:
+The SSM delta is confined to `service/ssmapi` and this source notice:
 
 - `cache.go`: bounded cache parsing rejects null roots/endpoints with errors
   that exclude input values, preserves unreadable/corrupt preimages, checks
@@ -53,3 +53,16 @@ protocol authentication and runtime/session ownership remain unchanged.
 paths and oversized-header rejection through actual loopback transports.
 Solovey separately adapts server-to-client path and public ECH serialization;
 those changes belong to its existing entity/subscription owners.
+
+WireGuard integration adapts the privileged IPC seam from the stable comparison
+source `deposist/sing-box-extended@cc14a046be0002aafd0950d06ea5c4aeb319f4e6`.
+Original GPL source notices are retained in the adapted tests. On the selected
+Shtorm baseline, the seam uses the existing protocol bind lock and a transport
+device lifetime lock. Reads/writes are rejected before start and after scope
+closure. Concurrent close detaches the device once before unregistering callbacks
+without holding that lock. Startup failure diagnostics do not expose IPC values.
+WARP forwards the native AWG 3.1 `random_trailers` and `disable_cookies` flags.
+Live userspace device tests cover peer read/add/remove, AWG flag readback,
+concurrent IPC/close, repeated close and restart rejection. The Panel must retain
+its runtime generation and redact key material before exposing IPC observations;
+this seam does not introduce an independent user/device or secret owner.
