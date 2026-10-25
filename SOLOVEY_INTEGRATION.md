@@ -118,3 +118,21 @@ tests exercise the same public runtime mutations without changing generation.
 expected net.ErrClosed after http.Server.Close as normal. Other cleanup errors
 still fail. The consuming runtime's actual private API handshake, stop/restart,
 API-only degradation, log redaction and generation fencing tests cover this seam.
+
+Mieru v3.33.0 exposes listener factories, but the upstream sing-box integration
+left both unset and therefore ignored its ListenOptions at bind time. The bounded
+adapter supplies those factories through the existing sing-box Listener. Mieru
+still selects primary/range ports and its wildcard default when no address is
+configured; sing-box supplies an explicitly configured address,
+socket flags, interface and namespace. No second protocol or socket owner is
+introduced. Mieru's Mux.Start waits for factories but returns success even when
+one fails. The adapter captures that failure before declaring readiness and
+registers unconditional server.Stop with the native Scope before starting.
+Each successful listener also registers its existing listener.Close with Scope:
+the Mieru startup barrier precedes UDP underlay registration, so immediate Stop
+can otherwise miss the underlay and leave its socket open. Expected net.ErrClosed
+from Mieru's concurrent cleanup is normal. Explicit/wildcard listener isolation,
+range port mapping, failed startup and repeated scope cleanup are covered by
+protocol/mieru tests;
+the consuming Panel qualifies actual TCP/UDP traffic and its existing user,
+runtime identity, counters and reload owners.
