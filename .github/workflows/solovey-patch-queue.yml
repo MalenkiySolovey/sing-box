@@ -36,6 +36,7 @@ jobs:
           companion=$(python scripts/verify-solovey-queue.py companion)
           if [[ -n "$companion" ]]; then
             go mod edit -modfile=.solovey-test.mod "-replace=github.com/sagernet/sing-quic=$companion"
+            go mod download -modfile=.solovey-test.mod "$companion"
           fi
           packages=$(python scripts/verify-solovey-queue.py packages)
           tags=$(python scripts/verify-solovey-queue.py tags)
