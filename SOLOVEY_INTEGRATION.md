@@ -156,3 +156,33 @@ startup and repeated Scope close cover the correction. No new authenticated
 parent-control capability is introduced. The consuming Panel separately tests
 actual HTTP/2 and HTTP/3 traffic, authenticated Users isolation and revocation
 through normal hot replacement.
+
+SSH now retires accepted transports and pending handshakes through its existing
+native Scope. Previously a normal Scope close released only the listening
+socket, so an authenticated client could keep opening forwarding channels while
+the parent context remained alive. Admission and draining share one lock, then
+Scope cancellation closes the admitted transports and joins their handlers.
+Explicit upstream fallback connections also close on that cancellation,
+including a stalled upstream SSH handshake. Empty users without an explicit
+fallback leave the listener inactive while host-key validation still runs.
+Authenticated two-user loopback traffic, identity, pending handshakes, explicit
+fallback, rejected post-close injection and port reuse cover this correction.
+
+MTProxy construction now validates secrets and options without starting MTG
+background network work. MTG is created only in the serving Start stage and its
+existing Shutdown is registered with Scope before binding. Listener cleanup
+joins Serve before Shutdown drains MTG's streams and background work. An empty
+user list leaves both the listener and MTG inactive. The doppelganger interval
+uses its own configured field, independently of the handshake timeout. The
+existing network adapter's HTTP helper uses a ten-second timeout, honors the
+caller's dial instrumentation and releases control-plane connections after each
+request. Tests cover constructor inactivity, configured background start/drain,
+failed bind, pending peers, port reuse, strict invalid-option rejection and a
+real private HTTP response with both default and instrumented dialing.
+
+These are bounded engine prerequisites. The consuming Panel must separately
+qualify SSH/MTProxy through its existing Inbounds, Users and SecretRef owners,
+including authenticated traffic, final-user disable/re-enable, candidate
+validation and both UI modes. Credential changes use the normal inbound
+replacement lifecycle; this patch does not qualify native hot user updates or
+introduce a separate credential, transaction or connection-control owner.
