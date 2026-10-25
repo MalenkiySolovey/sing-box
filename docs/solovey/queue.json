@@ -1,0 +1,42 @@
+{
+  "schema": "solovey.core-patch-queue/v1",
+  "sourceAuthority": "https://github.com/SagerNet/sing-box",
+  "copyRepository": "https://github.com/MalenkiySolovey/sing-box",
+  "copyRole": "mirror/cache/development",
+  "base": "af6e64c3b69e6132ebaee0e1a3d24e93903f6709",
+  "upstreamTree": "d4edc37a0f8ea49f5307aefdbcaf67295c56c45c",
+  "pristineRef": "refs/heads/mirror/v1.14.2",
+  "patchBranch": "solovey/official-patches",
+  "codeTree": "4ca03e05f360b25c958c2bfb6b4e246569789558",
+  "patchIds": [
+    "OFFICIAL-0001",
+    "OFFICIAL-0002",
+    "OFFICIAL-0003",
+    "OFFICIAL-0004"
+  ],
+  "legacyAcceptedCommits": {
+    "20fdbaa1cf7c7f9fd1c22116c63731d25916290d": "OFFICIAL-0001",
+    "afd12f10473eb4d2d1459897488deb623527782e": "OFFICIAL-0002",
+    "d0feb7cd0e3cfd46a2a90c06be901c6c87aaeed8": "OFFICIAL-0003",
+    "8b914e4be5103d5f343dac94f26c3ebeeb226ffc": "OFFICIAL-0004"
+  },
+  "metadataPaths": [
+    ".github/workflows/solovey-patch-queue.yml",
+    "scripts/verify-solovey-queue.py",
+    "docs/solovey/queue.json",
+    "docs/solovey/OFFICIAL_COPY_BASELINE.md",
+    "docs/solovey/UPSTREAM_REBASE_PROCEDURE.md"
+  ],
+  "regressionPackages": [
+    "./service/ssmapi",
+    "./transport/v2raywebsocket",
+    "./protocol/naive/quic"
+  ],
+  "buildTags": "with_quic,with_grpc,with_utls,with_gvisor",
+  "companion": {
+    "module": "github.com/MalenkiySolovey/sing-quic",
+    "version": "v0.7.1-0.20261010045634-b2eea8ca8762"
+  },
+  "localPatchesClassification": "ENGINE_PATCH_REQUIRED",
+  "upstreamContributionStatus": "CANDIDATES_PREPARED_NOT_SUBMITTED"
+}
