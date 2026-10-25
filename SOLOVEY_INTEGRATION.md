@@ -136,3 +136,12 @@ range port mapping, failed startup and repeated scope cleanup are covered by
 protocol/mieru tests;
 the consuming Panel qualifies actual TCP/UDP traffic and its existing user,
 runtime identity, counters and reload owners.
+
+TrustTunnel Scope cleanup retains the existing HTTP/TLS/listener ownership. Its
+HTTP server closes the served TCP listener before the shared listener cleanup;
+the latter now treats each expected net.ErrClosed as normal while retaining
+other TCP/UDP cleanup errors. Real TLS serving, TCP/UDP port reuse, partial dual
+startup and repeated Scope close cover the correction. No new authenticated
+parent-control capability is introduced. The consuming Panel separately tests
+actual HTTP/2 and HTTP/3 traffic, authenticated Users isolation and revocation
+through normal hot replacement.
