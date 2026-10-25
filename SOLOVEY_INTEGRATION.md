@@ -137,6 +137,17 @@ protocol/mieru tests;
 the consuming Panel qualifies actual TCP/UDP traffic and its existing user,
 runtime identity, counters and reload owners.
 
+An empty Mieru user list represents an inactive inbound. The selected upstream
+rejects it, which prevents the existing Users owner from disabling or revoking
+its final enabled user. The adapter still validates transport, ports/ranges and
+traffic patterns, but does not construct or start the Mieru API server when no
+users remain. Native hot replacement retires the old scope and its connections;
+there is no listener, anonymous access, substitute credential or fallback.
+The same saved options and credentials can serve again after an explicit Users
+re-enable. Engine tests prove omitted/empty lists keep TCP/UDP ports reusable,
+repeatable cleanup and strict invalid-option rejection; the consuming Panel
+must qualify final-user revocation and re-enable through its real save/runtime owners.
+
 TrustTunnel Scope cleanup retains the existing HTTP/TLS/listener ownership. Its
 HTTP server closes the served TCP listener before the shared listener cleanup;
 the latter now treats each expected net.ErrClosed as normal while retaining
