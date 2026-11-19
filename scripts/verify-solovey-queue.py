@@ -26,6 +26,13 @@ if len(sys.argv) > 1:
     raise SystemExit(0)
 assert config['schema'] == 'solovey.core-patch-queue/v1'
 assert git('rev-parse', config['base'] + '^{tree}') == config['upstreamTree'], 'upstream tree differs'
+upstream_ref = config['upstreamRef']
+assert upstream_ref.startswith('refs/tags/'), 'expected an exact upstream tag'
+peeled = upstream_ref + '^{}'
+advertised = git('ls-remote', config['sourceAuthority'], upstream_ref, peeled)
+upstream_refs = dict(line.split('\t')[::-1] for line in advertised.splitlines())
+assert upstream_ref in upstream_refs, 'upstream tag missing'
+assert upstream_refs.get(peeled, upstream_refs[upstream_ref]) == config['base'], 'upstream tag differs from pinned base'
 subprocess.check_call(['git', 'merge-base', '--is-ancestor', config['base'], 'HEAD'])
 remote = git('ls-remote', config['copyRepository'], config['pristineRef']).split()
 assert remote == [config['base'], config['pristineRef']], 'pristine copy differs from upstream base'

@@ -5,6 +5,7 @@
   "copyRole": "mirror/cache/development",
   "base": "af6e64c3b69e6132ebaee0e1a3d24e93903f6709",
   "upstreamTree": "d4edc37a0f8ea49f5307aefdbcaf67295c56c45c",
+  "upstreamRef": "refs/tags/v1.14.2",
   "pristineRef": "refs/heads/mirror/v1.14.2",
   "patchBranch": "solovey/official-patches",
   "codeTree": "4ca03e05f360b25c958c2bfb6b4e246569789558",
