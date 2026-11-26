@@ -8,12 +8,13 @@
   "upstreamRef": "refs/tags/v1.14.2",
   "pristineRef": "refs/heads/mirror/v1.14.2",
   "patchBranch": "solovey/official-patches",
-  "codeTree": "4ca03e05f360b25c958c2bfb6b4e246569789558",
+  "codeTree": "0a9190bb299229e1b5509f91dab2445dc4e33055",
   "patchIds": [
     "OFFICIAL-0001",
     "OFFICIAL-0002",
     "OFFICIAL-0003",
-    "OFFICIAL-0004"
+    "OFFICIAL-0004",
+    "OFFICIAL-0005"
   ],
   "legacyAcceptedCommits": {
     "20fdbaa1cf7c7f9fd1c22116c63731d25916290d": "OFFICIAL-0001",
@@ -31,7 +32,8 @@
   "regressionPackages": [
     "./service/ssmapi",
     "./transport/v2raywebsocket",
-    "./protocol/naive/quic"
+    "./protocol/naive/quic",
+    "./route"
   ],
   "buildTags": "with_quic,with_grpc,with_utls,with_gvisor",
   "companion": {
